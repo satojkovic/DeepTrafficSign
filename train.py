@@ -24,6 +24,7 @@
 
 import model_sof as model
 import tensorflow as tf
+import os
 
 BATCH_SIZE = 32
 
@@ -37,9 +38,22 @@ def main():
                 BATCH_SIZE, model.IMG_HEIGHT, model.IMG_WIDTH,
                 model.IMG_CHANNELS
             ])
+        y = tf.placeholder(tf.float32, shape=[BATCH_SIZE, model.NUM_CLASSES])
 
         # Instantiate convolutional neural network
-        cnn = model.deepnn(x)
+        logits, img_summary = model.deepnn(x)
+
+        # Training computation
+        with tf.name_scope('loss'):
+            loss = tf.nn.softmax_cross_entropy_with_logits(
+                logits=logits, labels=y)
+            tf.summary.scalar('loss', loss)
+        optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(loss)
+
+        # Merge all summaries
+        merged = tf.summary.merge_all()
+        train_fwriter = tf.summary.FileWriter(
+            os.path.join(os.getcwd(), 'train'))
 
 
 if __name__ == '__main__':
