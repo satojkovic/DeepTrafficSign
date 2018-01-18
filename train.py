@@ -55,6 +55,12 @@ def main():
         train_fwriter = tf.summary.FileWriter(
             os.path.join(os.getcwd(), 'train'))
 
+        #
+        # Training
+        #
+
+        # Load batches
+
 
 if __name__ == '__main__':
     main()

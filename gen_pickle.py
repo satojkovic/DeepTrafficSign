@@ -32,6 +32,9 @@ import joblib
 TRAIN_ROOT_DIR = os.path.join('GTSRB', 'Final_training')
 TRAIN_PKL_FILENAME = 'traffic_sign_train_dataset.pickle'
 
+TEST_ROOT_DIR = os.path.join('GTSRB', 'Final_test')
+TEST_PKL_FILENAME = 'traffic_sign_test_dataset.pickle'
+
 
 def gt_csv_getline(gt_csvs):
     for gt_csv in gt_csvs:
@@ -53,15 +56,18 @@ def gt_csv_getline(gt_csvs):
             yield (img_file_path, bbox, classId)
 
 
-def main():
+def get_gt_csvs(root_dir):
     gt_csvs = [
         os.path.join(root, f)
-        for root, dirs, files in os.walk(TRAIN_ROOT_DIR) for f in files
+        for root, dirs, files in os.walk(root_dir) for f in files
         if re.search(r'.csv', f)
     ]
+    return gt_csvs
 
-    train_bboxes = []
-    train_classIds = []
+
+def parse_gt_csv(gt_csvs):
+    bboxes = []
+    classIds = []
     for (img_file_path, bbox, classId) in gt_csv_getline(gt_csvs):
         # Crop ground truth bounding box
         img = cv2.imread(img_file_path)
@@ -69,12 +75,29 @@ def main():
             'Roi.X2']]
 
         # Append bbox and classId
-        train_bboxes.append(gt_bbox)
-        train_classIds.append(classId)
+        bboxes.append(gt_bbox)
+        classIds.append(classId)
+    return bboxes, classIds
+
+
+def save_as_pickle(train_or_test, bboxes, classIds, pkl_fname):
+    if train_or_test == 'train':
+        save = {'train_bboxes': bboxes, 'train_classIds': classIds}
+    else:
+        save = {'test_bboxes': bboxes, 'test_classIds': classIds}
+    joblib.dump(save, pkl_fname, compress=True)
+
+
+def main():
+    train_gt_csvs = get_gt_csvs(TRAIN_ROOT_DIR)
+    test_gt_csvs = get_gt_csvs(TEST_ROOT_DIR)
+
+    train_bboxes, train_classIds = parse_gt_csv(train_gt_csvs)
+    test_bboxes, test_classIds = parse_gt_csv(test_gt_csvs)
 
     # Save bboxes and classIds as pickle
-    save = {'train_bboxes': train_bboxes, 'train_classIds': train_classIds}
-    joblib.dump(save, TRAIN_PKL_FILENAME, compress=True)
+    save_as_pickle('train', train_bboxes, train_classIds, TRAIN_PKL_FILENAME)
+    save_as_pickle('test', test_bboxes, test_classIds, TEST_PKL_FILENAME)
 
 
 if __name__ == '__main__':
