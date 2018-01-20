@@ -28,6 +28,7 @@ import os
 import pandas as pd
 import re
 import joblib
+import numpy as np
 
 TRAIN_ROOT_DIR = os.path.join('GTSRB', 'Final_training')
 TRAIN_PKL_FILENAME = 'traffic_sign_train_dataset.pickle'
@@ -88,12 +89,33 @@ def save_as_pickle(train_or_test, bboxes, classIds, pkl_fname):
     joblib.dump(save, pkl_fname, compress=True)
 
 
+def preproc(bboxes, classIds):
+    preproced_bboxes = []
+
+    # Histogram equalization on color image
+    for bbox in bboxes:
+        img = cv2.cvtColor(bbox, cv2.COLOR_BGR2YCrCb)
+        split_img = cv2.split(img)
+        split_img[0] = cv2.equalizeHist(split_img[0])
+        eq_img = cv2.merge(split_img)
+        eq_img = cv2.cvtColor(eq_img, cv2.COLOR_YCrCb2BGR)
+
+        # Scaling in [0, 1]
+        eq_img = (eq_img / 255.).astype(np.float32)
+        preproced_bboxes.append(eq_img)
+
+    return preproced_bboxes, classIds
+
+
 def main():
     train_gt_csvs = get_gt_csvs(TRAIN_ROOT_DIR)
     test_gt_csvs = get_gt_csvs(TEST_ROOT_DIR)
 
     train_bboxes, train_classIds = parse_gt_csv(train_gt_csvs)
     test_bboxes, test_classIds = parse_gt_csv(test_gt_csvs)
+
+    # Preprocessing and apply data augmentation method
+    train_bboxes, train_classIds = preproc(train_bboxes, train_classIds)
 
     # Save bboxes and classIds as pickle
     save_as_pickle('train', train_bboxes, train_classIds, TRAIN_PKL_FILENAME)
