@@ -29,6 +29,8 @@ import pandas as pd
 import re
 import joblib
 import numpy as np
+import model_sof as model
+import copy
 
 TRAIN_ROOT_DIR = os.path.join('GTSRB', 'Final_training')
 TRAIN_PKL_FILENAME = 'traffic_sign_train_dataset.pickle'
@@ -107,15 +109,88 @@ def preproc(bboxes, classIds):
     return preproced_bboxes, classIds
 
 
+def aug_by_flip(bboxes, classIds):
+    aug_bboxes = copy.deepcopy(bboxes)
+    aug_classIds = copy.deepcopy(classIds)
+    n_classes = model.NUM_CLASSES
+
+    # This classification is referenced to below.
+    # https://navoshta.com/traffic-signs-classification/
+    #
+    # horizontal flip class
+    hflip_cls = np.array([11, 12, 13, 15, 17, 18, 22, 26, 30, 35])
+    # vertical flip class
+    vflip_cls = np.array([1, 5, 12, 15, 17])
+    # hozirontal and then vertical flip
+    hvflip_cls = np.array([32, 40])
+    # horizontal flip but the class change
+    hflip_cls_changed = np.array([
+        [19, 20],
+        [33, 34],
+        [36, 37],
+        [38, 39],
+        [20, 19],
+        [34, 33],
+        [37, 36],
+        [39, 38],
+    ])
+
+    for c in range(n_classes):
+        idxes = np.where(np.array(classIds) == c)
+        src = np.array(bboxes)[idxes]
+        srcIds = np.array(classIds)[idxes]
+
+        if c in hflip_cls:
+            # list of images(Ids) that flipped horizontally
+            dst = [s[::-1, :, :] for s in src]
+            dstIds = srcIds
+            # append to bbox and classIds
+            aug_bboxes += dst
+            aug_classIds += list(dstIds)
+        if c in vflip_cls:
+            # list of images(Ids) that flipped vertically
+            dst = [s[:, ::-1, :] for s in src]
+            dstIds = srcIds
+            # append to bbox and classIds
+            aug_bboxes += dst
+            aug_classIds += list(dstIds)
+        if c in hvflip_cls:
+            # list of images(Ids) that flipped horizontally and vertiaclly
+            dst = [s[::-1, :, :] for s in src]
+            dst = [d[:, ::-1, :] for d in dst]
+            dstIds = srcIds
+            # append to bbox and classIds
+            aug_bboxes += dst
+            aug_classIds += list(dstIds)
+        if c in hflip_cls_changed[:, 0]:
+            dst = [s[::-1, :, :] for s in src]
+            dstIds = [
+                hflip_cls_changed[hflip_cls_changed[:, 0] == c]
+                for si in srcIds
+            ]
+            # append to bbox and classIds
+            aug_bboxes += dst
+            aug_classIds += dstIds
+
+    return aug_bboxes, aug_classIds
+
+
 def main():
     train_gt_csvs = get_gt_csvs(TRAIN_ROOT_DIR)
     test_gt_csvs = get_gt_csvs(TEST_ROOT_DIR)
 
     train_bboxes, train_classIds = parse_gt_csv(train_gt_csvs)
     test_bboxes, test_classIds = parse_gt_csv(test_gt_csvs)
+    print('train dataset {}'.format(len(train_bboxes)))
+    print('test dataset {}'.format(len(test_bboxes)))
 
     # Preprocessing and apply data augmentation method
     train_bboxes, train_classIds = preproc(train_bboxes, train_classIds)
+
+    # flip
+    train_bboxes, train_classIds = aug_by_flip(train_bboxes, train_classIds)
+    print(
+        'train dataset(after data augmentation) {}'.format(len(train_bboxes)))
 
     # Save bboxes and classIds as pickle
     save_as_pickle('train', train_bboxes, train_classIds, TRAIN_PKL_FILENAME)
