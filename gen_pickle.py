@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright (c) 2016 satojkovic
+# Copyright (c) 2018 satojkovic
 
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -31,12 +31,7 @@ import joblib
 import numpy as np
 import model_sof as model
 import copy
-
-TRAIN_ROOT_DIR = os.path.join('GTSRB', 'Final_training')
-TRAIN_PKL_FILENAME = 'traffic_sign_train_dataset.pickle'
-
-TEST_ROOT_DIR = os.path.join('GTSRB', 'Final_test')
-TEST_PKL_FILENAME = 'traffic_sign_test_dataset.pickle'
+import common
 
 
 def gt_csv_getline(gt_csvs):
@@ -83,12 +78,20 @@ def parse_gt_csv(gt_csvs):
     return bboxes, classIds
 
 
-def save_as_pickle(train_or_test, bboxes, classIds, pkl_fname):
-    if train_or_test == 'train':
-        save = {'train_bboxes': bboxes, 'train_classIds': classIds}
+def save_as_pickle(train_or_test, bboxes, classIds, pkl_fname, shuffle=False):
+    if shuffle:
+        shuffled_idx = np.random.permutation(len(bboxes))
+        save_bboxes = np.array(bboxes)[shuffled_idx]
+        save_classIds = np.array(classIds)[shuffled_idx]
     else:
-        save = {'test_bboxes': bboxes, 'test_classIds': classIds}
-    joblib.dump(save, pkl_fname, compress=True)
+        save_bboxes = bboxes
+        save_classIds = classIds
+
+    if train_or_test == 'train':
+        save = {'train_bboxes': save_bboxes, 'train_classIds': save_classIds}
+    else:
+        save = {'test_bboxes': save_bboxes, 'test_classIds': save_classIds}
+    joblib.dump(save, pkl_fname, compress=5)
 
 
 def preproc(bboxes, classIds):
@@ -143,41 +146,40 @@ def aug_by_flip(bboxes, classIds):
         if c in hflip_cls:
             # list of images(Ids) that flipped horizontally
             dst = [s[::-1, :, :] for s in src]
-            dstIds = srcIds
+            dstIds = list(srcIds)
             # append to bbox and classIds
             aug_bboxes += dst
-            aug_classIds += list(dstIds)
+            aug_classIds += dstIds
         if c in vflip_cls:
             # list of images(Ids) that flipped vertically
             dst = [s[:, ::-1, :] for s in src]
-            dstIds = srcIds
+            dstIds = list(srcIds)
             # append to bbox and classIds
             aug_bboxes += dst
-            aug_classIds += list(dstIds)
+            aug_classIds += dstIds
         if c in hvflip_cls:
             # list of images(Ids) that flipped horizontally and vertiaclly
             dst = [s[::-1, :, :] for s in src]
             dst = [d[:, ::-1, :] for d in dst]
-            dstIds = srcIds
+            dstIds = list(srcIds)
             # append to bbox and classIds
             aug_bboxes += dst
-            aug_classIds += list(dstIds)
+            aug_classIds += dstIds
         if c in hflip_cls_changed[:, 0]:
             dst = [s[::-1, :, :] for s in src]
             dstIds = [
-                hflip_cls_changed[hflip_cls_changed[:, 0] == c]
-                for si in srcIds
+                hflip_cls_changed[hflip_cls_changed[:, 0] == c][0][1]
+                for i in range(len(srcIds))
             ]
             # append to bbox and classIds
             aug_bboxes += dst
             aug_classIds += dstIds
-
     return aug_bboxes, aug_classIds
 
 
 def main():
-    train_gt_csvs = get_gt_csvs(TRAIN_ROOT_DIR)
-    test_gt_csvs = get_gt_csvs(TEST_ROOT_DIR)
+    train_gt_csvs = get_gt_csvs(common.TRAIN_ROOT_DIR)
+    test_gt_csvs = get_gt_csvs(common.TEST_ROOT_DIR)
 
     train_bboxes, train_classIds = parse_gt_csv(train_gt_csvs)
     test_bboxes, test_classIds = parse_gt_csv(test_gt_csvs)
@@ -193,8 +195,14 @@ def main():
         'train dataset(after data augmentation) {}'.format(len(train_bboxes)))
 
     # Save bboxes and classIds as pickle
-    save_as_pickle('train', train_bboxes, train_classIds, TRAIN_PKL_FILENAME)
-    save_as_pickle('test', test_bboxes, test_classIds, TEST_PKL_FILENAME)
+    save_as_pickle(
+        'train',
+        train_bboxes,
+        train_classIds,
+        common.TRAIN_PKL_FILENAME,
+        shuffle=True)
+    save_as_pickle('test', test_bboxes, test_classIds,
+                   common.TEST_PKL_FILENAME)
 
 
 if __name__ == '__main__':
