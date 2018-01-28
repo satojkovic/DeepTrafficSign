@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright (c) 2016 satojkovic
+# Copyright (c) 2018 satojkovic
 
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -25,11 +25,36 @@
 import model_sof as model
 import tensorflow as tf
 import os
+import common
+import joblib
+import numpy as np
 
-BATCH_SIZE = 32
+BATCH_SIZE = 128
+
+
+def accuracy(predictions, labels):
+    return (100 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1)) /
+            predictions.shape[0])
+
+
+def load_dataset_and_labels(dataset_fname, train_or_test):
+    data = joblib.load(dataset_fname)
+    if train_or_test == 'train':
+        dataset, labels = data['train_bboxes'], data['train_classIds']
+    else:
+        dataset, labels = data['test_bboxes'], data['test_classIds']
+    return dataset, labels
 
 
 def main():
+    # Load dataset and label
+    train_dataset, train_labels = load_dataset_and_labels(
+        common.TRAIN_PKL_FILENAME, 'train')
+    test_dataset, test_labels = load_dataset_and_labels(
+        common.TEST_PKL_FILENAME, 'test')
+    n_train_dataset = train_dataset.shape[0]
+    n_test_dataset = test_dataset.shape[0]
+
     with tf.Graph().as_default(), tf.Session() as sess:
         # Inputs
         x = tf.placeholder(
@@ -45,21 +70,45 @@ def main():
 
         # Training computation
         with tf.name_scope('loss'):
-            loss = tf.nn.softmax_cross_entropy_with_logits(
-                logits=logits, labels=y)
+            loss = tf.reduce_sum(
+                tf.nn.softmax_cross_entropy_with_logits(
+                    logits=logits, labels=y))
             tf.summary.scalar('loss', loss)
         optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(loss)
+        train_prediction = tf.nn.softmax(logits)
 
         # Merge all summaries
         merged = tf.summary.merge_all()
         train_fwriter = tf.summary.FileWriter(
             os.path.join(os.getcwd(), 'train'))
 
+        # Add ops to save and restore all the variables
+        saver = tf.train.Saver()
+
         #
         # Training
         #
+        sess.run(tf.global_variables_initializer())
+        for epoch in range(model.NUM_EPOCH):
+            for idx in range(0, n_train_dataset, BATCH_SIZE):
+                offset = (idx * BATCH_SIZE) % (n_train_dataset - BATCH_SIZE)
+                x_batch = train_dataset[offset:offset + BATCH_SIZE, :, :, :]
+                y_batch = train_labels[offset:offset + BATCH_SIZE, :]
+                feed_dict = {x: x_batch, y: y_batch}
+                _, l, predictions = sess.run(
+                    [optimizer, loss, train_prediction], feed_dict=feed_dict)
+                # Print batch results
+                print('[epoch %d] Mini-batch loss at %d: %f' % (epoch, idx, l))
+                print('[epoch %d] Minibatch accuracy: %.1f%%' %
+                      (epoch, accuracy(predictions, y_batch)))
 
-        # Load batches
+        # Save the trained model to disk.
+        save_dir = "models"
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        save_path = os.path.join(save_dir, "deep_traffic_sign_model")
+        saved = saver.save(sess, save_path)
+        print("Model saved in file: %s" % saved)
 
 
 if __name__ == '__main__':
