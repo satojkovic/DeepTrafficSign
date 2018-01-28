@@ -30,7 +30,6 @@ import re
 import joblib
 import numpy as np
 import model_sof as model
-import copy
 import common
 
 
@@ -63,18 +62,27 @@ def get_gt_csvs(root_dir):
     return gt_csvs
 
 
-def parse_gt_csv(gt_csvs):
-    bboxes = []
-    classIds = []
-    for (img_file_path, bbox, classId) in gt_csv_getline(gt_csvs):
+def parse_gt_csv(gt_csvs, data_size):
+    bboxes = np.zeros(
+        (data_size, model.IMG_HEIGHT, model.IMG_WIDTH, model.IMG_CHANNELS),
+        dtype=np.uint8)
+    classIds = np.zeros((data_size, 1), dtype=np.int32)
+    for i, (img_file_path, bbox,
+            classId) in enumerate(gt_csv_getline(gt_csvs)):
         # Crop ground truth bounding box
         img = cv2.imread(img_file_path)
         gt_bbox = img[bbox['Roi.Y1']:bbox['Roi.Y2'], bbox['Roi.X1']:bbox[
             'Roi.X2']]
 
+        # Resize to same size
+        gt_bbox = cv2.resize(gt_bbox, (model.IMG_HEIGHT, model.IMG_WIDTH))
+
+        # Expand dimension to stack image arrays
+        gt_bbox = np.expand_dims(gt_bbox, axis=0)
+
         # Append bbox and classId
-        bboxes.append(gt_bbox)
-        classIds.append(classId)
+        bboxes[i] = gt_bbox
+        classIds[i] = classId
     return bboxes, classIds
 
 
@@ -84,8 +92,8 @@ def save_as_pickle(train_or_test, bboxes, classIds, pkl_fname, shuffle=False):
         save_bboxes = np.array(bboxes)[shuffled_idx]
         save_classIds = np.array(classIds)[shuffled_idx]
     else:
-        save_bboxes = bboxes
-        save_classIds = classIds
+        save_bboxes = np.array(bboxes)
+        save_classIds = np.array(classIds)
 
     if train_or_test == 'train':
         save = {'train_bboxes': save_bboxes, 'train_classIds': save_classIds}
@@ -95,10 +103,10 @@ def save_as_pickle(train_or_test, bboxes, classIds, pkl_fname, shuffle=False):
 
 
 def preproc(bboxes, classIds):
-    preproced_bboxes = []
+    preproced_bboxes = np.zeros(bboxes.shape)
 
     # Histogram equalization on color image
-    for bbox in bboxes:
+    for i, bbox in enumerate(bboxes):
         img = cv2.cvtColor(bbox, cv2.COLOR_BGR2YCrCb)
         split_img = cv2.split(img)
         split_img[0] = cv2.equalizeHist(split_img[0])
@@ -107,14 +115,16 @@ def preproc(bboxes, classIds):
 
         # Scaling in [0, 1]
         eq_img = (eq_img / 255.).astype(np.float32)
-        preproced_bboxes.append(eq_img)
 
+        # Append bboxes
+        preproced_bboxes[i] = eq_img
     return preproced_bboxes, classIds
 
 
 def aug_by_flip(bboxes, classIds):
-    aug_bboxes = copy.deepcopy(bboxes)
-    aug_classIds = copy.deepcopy(classIds)
+    aug_bboxes = np.zeros((0, bboxes.shape[1], bboxes.shape[2],
+                           bboxes.shape[3]))
+    aug_classIds = np.zeros((0, classIds.shape[1]))
     n_classes = model.NUM_CLASSES
 
     # This classification is referenced to below.
@@ -139,55 +149,59 @@ def aug_by_flip(bboxes, classIds):
     ])
 
     for c in range(n_classes):
-        idxes = np.where(np.array(classIds) == c)
-        src = np.array(bboxes)[idxes]
-        srcIds = np.array(classIds)[idxes]
+        idxes = np.where(classIds == c)[0]
+        src = bboxes[idxes]
+        srcIds = classIds[idxes]
 
         if c in hflip_cls:
             # list of images(Ids) that flipped horizontally
-            dst = [s[::-1, :, :] for s in src]
-            dstIds = list(srcIds)
+            dst = src[:, ::-1, :, :]
             # append to bbox and classIds
-            aug_bboxes += dst
-            aug_classIds += dstIds
+            aug_bboxes = np.append(aug_bboxes, dst, axis=0)
+            aug_classIds = np.append(aug_classIds, srcIds, axis=0)
         if c in vflip_cls:
             # list of images(Ids) that flipped vertically
-            dst = [s[:, ::-1, :] for s in src]
-            dstIds = list(srcIds)
+            dst = src[:, :, ::-1, :]
             # append to bbox and classIds
-            aug_bboxes += dst
-            aug_classIds += dstIds
+            aug_bboxes = np.append(aug_bboxes, dst, axis=0)
+            aug_classIds = np.append(aug_classIds, srcIds, axis=0)
         if c in hvflip_cls:
             # list of images(Ids) that flipped horizontally and vertiaclly
-            dst = [s[::-1, :, :] for s in src]
-            dst = [d[:, ::-1, :] for d in dst]
-            dstIds = list(srcIds)
+            dst = src[:, ::-1, :, :]
+            dst = dst[:, :, ::-1, :]
             # append to bbox and classIds
-            aug_bboxes += dst
-            aug_classIds += dstIds
+            aug_bboxes = np.append(aug_bboxes, dst, axis=0)
+            aug_classIds = np.append(aug_classIds, srcIds, axis=0)
         if c in hflip_cls_changed[:, 0]:
-            dst = [s[::-1, :, :] for s in src]
-            dstIds = [
+            dst = src[:, ::-1, :, :]
+            dstIds = np.asarray([
                 hflip_cls_changed[hflip_cls_changed[:, 0] == c][0][1]
                 for i in range(len(srcIds))
-            ]
+            ])
             # append to bbox and classIds
-            aug_bboxes += dst
-            aug_classIds += dstIds
-    return aug_bboxes, aug_classIds
+            aug_bboxes = np.append(aug_bboxes, dst, axis=0)
+            aug_classIds = np.append(
+                aug_classIds, np.expand_dims(dstIds, axis=1), axis=0)
+    return np.append(bboxes, aug_bboxes, axis=0), \
+        np.append(classIds, aug_classIds, axis=0)
 
 
 def main():
     train_gt_csvs = get_gt_csvs(common.TRAIN_ROOT_DIR)
     test_gt_csvs = get_gt_csvs(common.TEST_ROOT_DIR)
 
-    train_bboxes, train_classIds = parse_gt_csv(train_gt_csvs)
-    test_bboxes, test_classIds = parse_gt_csv(test_gt_csvs)
-    print('train dataset {}'.format(len(train_bboxes)))
-    print('test dataset {}'.format(len(test_bboxes)))
+    train_bboxes, train_classIds = parse_gt_csv(train_gt_csvs,
+                                                common.TRAIN_SIZE)
+    test_bboxes, test_classIds = parse_gt_csv(test_gt_csvs, common.TEST_SIZE)
+    print('train dataset {}, labels {}'.format(train_bboxes.shape,
+                                               train_classIds.shape))
+    print('test dataset {}, labels {}'.format(test_bboxes.shape,
+                                              test_classIds.shape))
 
     # Preprocessing and apply data augmentation method
     train_bboxes, train_classIds = preproc(train_bboxes, train_classIds)
+    print('train dataset(after preprocessing) {}, labels {}'.format(
+        train_bboxes.shape, train_classIds.shape))
 
     # flip
     train_bboxes, train_classIds = aug_by_flip(train_bboxes, train_classIds)
