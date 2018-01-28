@@ -122,9 +122,9 @@ def preproc(bboxes, classIds):
 
 
 def aug_by_flip(bboxes, classIds):
-    aug_bboxes = np.zeros((0, bboxes.shape[1], bboxes.shape[2],
-                           bboxes.shape[3]))
-    aug_classIds = np.zeros((0, classIds.shape[1]))
+    aug_bboxes = np.zeros(
+        (0, bboxes.shape[1], bboxes.shape[2], bboxes.shape[3]), dtype=np.uint8)
+    aug_classIds = np.zeros((0, classIds.shape[1]), dtype=np.int32)
     n_classes = model.NUM_CLASSES
 
     # This classification is referenced to below.
@@ -208,14 +208,20 @@ def main():
     print(
         'train dataset(after data augmentation) {}'.format(len(train_bboxes)))
 
+    # Convert classIds to one hot vector
+    train_one_hot_classIds = np.eye(
+        model.NUM_CLASSES)[train_classIds.reshape(len(train_classIds))]
+    test_one_hot_classIds = np.eye(
+        model.NUM_CLASSES)[test_classIds.reshape(len(test_classIds))]
+
     # Save bboxes and classIds as pickle
     save_as_pickle(
         'train',
         train_bboxes,
-        train_classIds,
+        train_one_hot_classIds,
         common.TRAIN_PKL_FILENAME,
         shuffle=True)
-    save_as_pickle('test', test_bboxes, test_classIds,
+    save_as_pickle('test', test_bboxes, test_one_hot_classIds,
                    common.TEST_PKL_FILENAME)
 
 
