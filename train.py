@@ -22,12 +22,12 @@
 
 #!/usr/bin/env python
 
-import model_sof as model
 import tensorflow as tf
 import os
 import common
 import joblib
 import numpy as np
+import model as model
 
 BATCH_SIZE = 128
 
@@ -66,7 +66,8 @@ def main():
         y = tf.placeholder(tf.float32, shape=[BATCH_SIZE, model.NUM_CLASSES])
 
         # Instantiate convolutional neural network
-        logits, img_summary = model.deepnn(x)
+        model_params = model.params()
+        logits = model.cnn(x, model_params, keep_prob=0.5)
 
         # Training computation
         with tf.name_scope('loss'):
