@@ -27,7 +27,7 @@ import os
 import common
 import joblib
 import numpy as np
-import model as model
+import model_sof as model
 
 BATCH_SIZE = 128
 
@@ -69,8 +69,7 @@ def main():
         tf_test_dataset = tf.constant(test_dataset, dtype=tf.float32)
 
         # Instantiate convolutional neural network
-        model_params = model.params()
-        logits = model.cnn(x, model_params, keep_prob=0.5)
+        logits, img_summary = model.deepnn(x)
 
         # Training computation
         with tf.name_scope('loss'):
