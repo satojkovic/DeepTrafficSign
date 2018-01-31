@@ -65,6 +65,9 @@ def main():
             ])
         y = tf.placeholder(tf.float32, shape=[BATCH_SIZE, model.NUM_CLASSES])
 
+        # Inputs for test
+        tf_test_dataset = tf.constant(test_dataset, dtype=tf.float32)
+
         # Instantiate convolutional neural network
         model_params = model.params()
         logits = model.cnn(x, model_params, keep_prob=0.5)
@@ -77,6 +80,8 @@ def main():
             tf.summary.scalar('loss', loss)
         optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(loss)
         train_prediction = tf.nn.softmax(logits)
+        test_prediction = tf.nn.softmax(
+            model.cnn(tf_test_dataset, model_params, keep_prob=1.0))
 
         # Merge all summaries
         merged = tf.summary.merge_all()
@@ -102,6 +107,9 @@ def main():
                 print('[epoch %d] Mini-batch loss at %d: %f' % (epoch, idx, l))
                 print('[epoch %d] Minibatch accuracy: %.1f%%' %
                       (epoch, accuracy(predictions, y_batch)))
+
+        print('Test accuracy: %.1f%%' % accuracy(test_prediction.eval(),
+                                                 test_labels))
 
         # Save the trained model to disk.
         save_dir = "models"
