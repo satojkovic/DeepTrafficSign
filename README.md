@@ -21,11 +21,11 @@
 3. Training
    ```csh
    $ python train.py
-   [epoch 0] Mini-batch loss at 0: 491.711456
-   [epoch 0] Minibatch accuracy: 4.7%
+   [epoch 0] Mini-batch loss at 0: 484.614136
+   [epoch 0] Minibatch accuracy: 1.6%
    ...
-   [epoch 1] Mini-batch loss at 63488: 24.210030
-   [epoch 1] Minibatch accuracy: 93.8%
-   Test accuracy: 81.5%
+   [epoch 9] Mini-batch loss at 63488: 4.628788
+   [epoch 9] Minibatch accuracy: 98.4%
+   Test accuracy: 86.0%
    Model saved in file: models/deep_traffic_sign_model
-   ```
+    ```
