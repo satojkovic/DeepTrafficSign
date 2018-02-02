@@ -7,47 +7,72 @@ IMG_WIDTH = 32
 IMG_HEIGHT = 32
 IMG_CHANNELS = 3
 NUM_CLASSES = 43
-NUM_EPOCH = 1
+NUM_EPOCH = 10
 
 
-def deepnn(x):
+def deepnn_params():
+    model_params = {}
+
+    with tf.variable_scope('Conv_1'):
+        model_params['W_conv1'] = weight_variable([5, 5, IMG_CHANNELS, 32])
+        tf.add_to_collection('decay_weights', model_params['W_conv1'])
+        model_params['b_conv1'] = bias_variable([32])
+
+    with tf.variable_scope('Conv_2'):
+        model_params['W_conv2'] = weight_variable([5, 5, 32, 64])
+        tf.add_to_collection('decay_weights', model_params['W_conv2'])
+        model_params['b_conv2'] = bias_variable([64])
+
+    with tf.variable_scope('Conv_3'):
+        model_params['W_conv3'] = weight_variable([5, 5, 64, 128])
+        tf.add_to_collection('decay_weights', model_params['W_conv3'])
+        model_params['b_conv3'] = bias_variable([128])
+
+    with tf.variable_scope('FC_1'):
+        model_params['W_fc1'] = weight_variable([4 * 4 * 128, 2048])
+        tf.add_to_collection('decay_weights', model_params['W_fc1'])
+        model_params['b_fc1'] = bias_variable([2048])
+
+    with tf.variable_scope('FC_2'):
+        model_params['W_fc2'] = weight_variable([2048, NUM_CLASSES])
+        tf.add_to_collection('decay_weights', model_params['W_fc2'])
+        model_params['b_fc2'] = bias_variable([NUM_CLASSES])
+
+    return model_params
+
+
+def deepnn(x, model_params, keep_prob):
 
     x_image = tf.reshape(x, [-1, IMG_WIDTH, IMG_HEIGHT, IMG_CHANNELS])
     img_summary = tf.summary.image('Input_images', x_image)
 
     with tf.variable_scope('Conv_1'):
-        W_conv1 = weight_variable([5, 5, IMG_CHANNELS, 32])
-        tf.add_to_collection('decay_weights', W_conv1)
-        b_conv1 = bias_variable([32])
-        h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1, 2) + b_conv1)
+        h_conv1 = tf.nn.relu(
+            conv2d(x_image, model_params['W_conv1'], 2) +
+            model_params['b_conv1'])
         h_pool1 = avg_pool_3x3(h_conv1)
 
     with tf.variable_scope('Conv_2'):
-        W_conv2 = weight_variable([5, 5, 32, 64])
-        tf.add_to_collection('decay_weights', W_conv2)
-        b_conv2 = bias_variable([64])
-        h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2, 2) + b_conv2)
+        h_conv2 = tf.nn.relu(
+            conv2d(h_pool1, model_params['W_conv2'], 2) +
+            model_params['b_conv2'])
         h_pool2 = avg_pool_3x3(h_conv2)
 
     with tf.variable_scope('Conv_3'):
-        W_conv3 = weight_variable([5, 5, 64, 128])
-        tf.add_to_collection('decay_weights', W_conv3)
-        b_conv3 = bias_variable([128])
-        h_conv3 = tf.nn.relu(conv2d(h_pool2, W_conv3, 2) + b_conv3)
+        h_conv3 = tf.nn.relu(
+            conv2d(h_pool2, model_params['W_conv3'], 2) +
+            model_params['b_conv3'])
         h_pool3 = max_pool_3x3(h_conv3)
 
     with tf.variable_scope('FC_1'):
         h_pool3_flat = tf.reshape(h_pool3, [-1, 4 * 4 * 128])
-        W_fc1 = weight_variable([4 * 4 * 128, 2048])
-        tf.add_to_collection('decay_weights', W_fc1)
-        b_fc1 = bias_variable([2048])
-        h_fc1 = tf.nn.relu(tf.matmul(h_pool3_flat, W_fc1) + b_fc1)
+        h_fc1 = tf.nn.relu(
+            tf.matmul(h_pool3_flat, model_params['W_fc1']) +
+            model_params['b_fc1'])
+        h_fc1 = tf.nn.dropout(h_fc1, keep_prob)
 
     with tf.variable_scope('FC_2'):
-        W_fc2 = weight_variable([2048, NUM_CLASSES])
-        tf.add_to_collection('decay_weights', W_fc2)
-        b_fc2 = bias_variable([NUM_CLASSES])
-        y_fc2 = tf.matmul(h_fc1, W_fc2) + b_fc2
+        y_fc2 = tf.matmul(h_fc1, model_params['W_fc2']) + model_params['b_fc2']
 
     return y_fc2, img_summary
 

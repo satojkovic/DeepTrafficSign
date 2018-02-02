@@ -69,7 +69,8 @@ def main():
         tf_test_dataset = tf.constant(test_dataset, dtype=tf.float32)
 
         # Instantiate convolutional neural network
-        logits, img_summary = model.deepnn(x)
+        model_params = model.deepnn_params()
+        logits, img_summary = model.deepnn(x, model_params, keep_prob=0.5)
 
         # Training computation
         with tf.name_scope('loss'):
@@ -80,7 +81,7 @@ def main():
         optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(loss)
         train_prediction = tf.nn.softmax(logits)
         test_prediction = tf.nn.softmax(
-            model.cnn(tf_test_dataset, model_params, keep_prob=1.0))
+            model.deepnn(tf_test_dataset, model_params, keep_prob=1.0)[0])
 
         # Merge all summaries
         merged = tf.summary.merge_all()
