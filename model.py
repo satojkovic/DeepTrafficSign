@@ -27,7 +27,7 @@ import tensorflow as tf
 
 PATCH_SIZE = 5
 NUM_CLASSES = 43
-NUM_EPOCH = 2
+NUM_EPOCH = 10
 IMG_WIDTH = 32
 IMG_HEIGHT = 32
 IMG_CHANNELS = 3
