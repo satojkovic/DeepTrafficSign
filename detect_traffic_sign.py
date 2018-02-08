@@ -38,6 +38,11 @@ import common
 def parse_cmdline():
     parser = argparse.ArgumentParser()
     parser.add_argument('img_fn', help='image filename')
+    parser.add_argument(
+        '--save_img',
+        action='store_true',
+        default=False,
+        help='Use this flag if you want to save result image (default: False)')
     return parser.parse_args()
 
 
@@ -104,6 +109,7 @@ def cls2name(cls):
 def main():
     args = parse_cmdline()
     img_fn = os.path.abspath(args.img_fn)
+    save_img = args.save_img
     if not os.path.exists(img_fn):
         print('Not found: {}'.format(img_fn))
         sys.exit(-1)
@@ -164,6 +170,11 @@ def main():
             (x, y), w, h, fill=False, edgecolor='red', linewidth=1)
         ax.add_patch(rect)
     plt.show()
+
+    # save the target image
+    save_fname = os.path.splitext(os.path.basename(img_fn))[0] + '_result.jpg'
+    if save_img:
+        fig.savefig(save_fname, bbox_inches='tight', pad_inches=0.0)
 
 
 if __name__ == '__main__':
