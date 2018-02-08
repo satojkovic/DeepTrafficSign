@@ -25,7 +25,9 @@
 import os
 import re
 
-TRAIN_ROOT_DIR = os.path.join('GTSRB', 'Final_training')
+GTSRB_ROOT_DIR = 'GTSRB'
+
+TRAIN_ROOT_DIR = os.path.join(GTSRB_ROOT_DIR, 'Final_training')
 TRAIN_PKL_FILENAME = 'traffic_sign_train_dataset.pickle'
 TRAIN_SIZE = len([
     f
@@ -33,7 +35,7 @@ TRAIN_SIZE = len([
     for f in files if re.search(r'.ppm', f)
 ])
 
-TEST_ROOT_DIR = os.path.join('GTSRB', 'Final_test')
+TEST_ROOT_DIR = os.path.join(GTSRB_ROOT_DIR, 'Final_test')
 TEST_PKL_FILENAME = 'traffic_sign_test_dataset.pickle'
 TEST_SIZE = len([
     f

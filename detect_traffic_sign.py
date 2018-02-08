@@ -32,6 +32,7 @@ import util
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import cv2
+import common
 
 
 def parse_cmdline():
@@ -84,6 +85,22 @@ def setup_graph():
     return graph_params
 
 
+def cls2name(cls):
+    SIGNNAMES_FILE = 'signnames.csv'
+    signnames_ = np.loadtxt(
+        os.path.join(common.GTSRB_ROOT_DIR, SIGNNAMES_FILE),
+        delimiter=',',
+        dtype=np.str)
+    # skip first row
+    signnames = signnames_[1:]
+    # dictionary that convert class number to sign name
+    to_name = {s[0]: s[1] for s in signnames}
+
+    # convert class name to signname
+    name = to_name[str(cls)]
+    return name
+
+
 def main():
     args = parse_cmdline()
     img_fn = os.path.abspath(args.img_fn)
@@ -132,7 +149,7 @@ def main():
 
     # Draw rectangles on the target image
     fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(6, 6))
-    ax.imshow(target_image)
+    ax.imshow(cv2.cvtColor(target_image, cv2.COLOR_BGR2RGB))
 
     for result in nms_results:
         print(result)
@@ -140,7 +157,7 @@ def main():
         ax.text(
             x,
             y,
-            result['pred_class'],
+            cls2name(result['pred_class']),
             fontsize=13,
             bbox=dict(facecolor='red', alpha=0.7))
         rect = mpatches.Rectangle(
