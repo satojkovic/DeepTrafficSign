@@ -3,7 +3,7 @@
 ### One example
 
 ![example1](results/priority_road.png)
-![example2](results/keep_right.png)
+![example2](results/keep_right.jpg)
 
 ### Usage
 
