@@ -33,3 +33,12 @@
    Test accuracy: 81.5%
    Model saved in file: models/deep_traffic_sign_model
    ```
+
+4. Detection
+   ```
+   $ python detect_traffic_sign.py [target_image_file]
+   ```
+
+### License
+
+MIT
