@@ -75,7 +75,7 @@ def parse_gt_csv(gt_csvs, data_size):
             'Roi.X2']]
 
         # Resize to same size
-        gt_bbox = cv2.resize(gt_bbox, (model.IMG_HEIGHT, model.IMG_WIDTH))
+        gt_bbox = cv2.resize(gt_bbox, (model.IMG_WIDTH, model.IMG_HEIGHT))
 
         # Expand dimension to stack image arrays
         gt_bbox = np.expand_dims(gt_bbox, axis=0)
