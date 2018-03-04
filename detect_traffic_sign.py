@@ -53,7 +53,7 @@ def traffic_sign_recognition(sess, img, obj_proposal, graph_params):
 
     # Resize image
     if img.shape != model.IMG_SHAPE:
-        img = cv2.resize(img, (model.IMG_SHAPE[0], model.IMG_SHAPE[1]))
+        img = cv2.resize(img, (model.IMG_WIDTH, model.IMG_HEIGHT))
 
     # Pre-processing(Hist equalization)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
