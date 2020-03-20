@@ -1,6 +1,7 @@
 import pathlib
 import os
 import re
+import tensorflow as tf
 
 class GTSRB:
     def __init__(self, data_root):
@@ -17,6 +18,9 @@ class GTSRB:
             if re.search(r'.csv', f)
         ]
         return gt_csvs
+
+    def create_tf_examples(self, output_path):
+        pass
 
 if __name__ == "__main__":
     gtsrb = GTSRB('GTSRB')
