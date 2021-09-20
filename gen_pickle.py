@@ -29,7 +29,7 @@ import pandas as pd
 import re
 import joblib
 import numpy as np
-import model_sof as model
+from model import NUM_CLASSES, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS
 import common
 
 
@@ -64,7 +64,7 @@ def get_gt_csvs(root_dir):
 
 def parse_gt_csv(gt_csvs, data_size):
     bboxes = np.zeros(
-        (data_size, model.IMG_HEIGHT, model.IMG_WIDTH, model.IMG_CHANNELS),
+        (data_size, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS),
         dtype=np.uint8)
     classIds = np.zeros((data_size, 1), dtype=np.int32)
     for i, (img_file_path, bbox,
@@ -75,7 +75,7 @@ def parse_gt_csv(gt_csvs, data_size):
             'Roi.X2']]
 
         # Resize to same size
-        gt_bbox = cv2.resize(gt_bbox, (model.IMG_WIDTH, model.IMG_HEIGHT))
+        gt_bbox = cv2.resize(gt_bbox, (IMG_WIDTH, IMG_HEIGHT))
 
         # Expand dimension to stack image arrays
         gt_bbox = np.expand_dims(gt_bbox, axis=0)
@@ -125,7 +125,7 @@ def aug_by_flip(bboxes, classIds):
     aug_bboxes = np.zeros(
         (0, bboxes.shape[1], bboxes.shape[2], bboxes.shape[3]), dtype=np.uint8)
     aug_classIds = np.zeros((0, classIds.shape[1]), dtype=np.int32)
-    n_classes = model.NUM_CLASSES
+    n_classes = NUM_CLASSES
 
     # This classification is referenced to below.
     # https://navoshta.com/traffic-signs-classification/
@@ -210,9 +210,9 @@ def main():
 
     # Convert classIds to one hot vector
     train_one_hot_classIds = np.eye(
-        model.NUM_CLASSES)[train_classIds.reshape(len(train_classIds))]
+        NUM_CLASSES)[train_classIds.reshape(len(train_classIds))]
     test_one_hot_classIds = np.eye(
-        model.NUM_CLASSES)[test_classIds.reshape(len(test_classIds))]
+        NUM_CLASSES)[test_classIds.reshape(len(test_classIds))]
 
     # Save bboxes and classIds as pickle
     save_as_pickle(
