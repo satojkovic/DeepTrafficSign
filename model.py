@@ -107,3 +107,32 @@ def cnn(data, model_params, keep_prob):
     out = tf.matmul(h_fc1, model_params['w_fc2']) + model_params['b_fc2']
 
     return out
+
+
+class TrafficSignRecognizer:
+    def __init__(self, keep_prob=1.0):
+        self.keep_prob = keep_prob
+        self.recognizer = self.build(keep_prob)
+
+    def build(self, keep_prob):
+        input_image = tf.keras.layers.Input(
+            shape=[IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS])
+        x = tf.keras.layers.Conv2D(
+            32, PATCH_SIZE, padding='same', activation='relu')(input_image)
+        x = tf.keras.layers.MaxPool2D()(x)
+        x = tf.keras.layers.Conv2D(
+            64, PATCH_SIZE, padding='same', activation='relu')(x)
+        x = tf.keras.layers.MaxPool2D()(x)
+        x = tf.keras.layers.Conv2D(
+            128, PATCH_SIZE, padding='same', activation='relu')(x)
+        x = tf.keras.layers.MaxPool2D()(x)
+        x = tf.keras.layers.Flatten()(x)
+        x = tf.keras.layers.Dense(4*4*128, activation='relu')(x)
+        x = tf.keras.layers.Dropout(keep_prob)(x)
+        outputs = tf.keras.layers.Dense(NUM_CLASSES, activation='softmax')(x)
+        return tf.keras.Model(inputs=input_image, outputs=outputs)
+
+
+if __name__ == '__main__':
+    tsr = TrafficSignRecognizer(keep_prob=0.5)
+    tsr.recognizer.summary()
