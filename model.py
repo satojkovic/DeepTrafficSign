@@ -151,16 +151,15 @@ class TrafficSignRecognizer:
             tf.keras.callbacks.TensorBoard(log_dir=os.path.join(
                 self.model_dir, 'log_dir'), histogram_freq=0, write_graph=True),
             tf.keras.callbacks.ModelCheckpoint(
-                os.path.join(self.model_dir, 'ckpt_dir'), verbose=0, save_weights_only=True),
+                os.path.join(self.model_dir, 'ckpt'), verbose=0, save_weights_only=True),
         ]
 
         # Compile
         self.compile(learning_rate)
 
         # Do training
-        n_epochs = (len(train_dataset) // BATCH_SIZE) + 1
         self.recognizer_model.fit(
-            train_dataset, train_labels, callbacks=callbacks, epochs=n_epochs, validation_split=0.2)
+            train_dataset, train_labels, callbacks=callbacks, epochs=NUM_EPOCH, validation_split=0.2)
 
 
 if __name__ == '__main__':
