@@ -22,14 +22,11 @@
 
 #!/usr/bin/env python
 
-import tensorflow as tf
-import os
-import common
-import joblib
 import numpy as np
-import model as model
-
-BATCH_SIZE = 128
+import joblib
+import common
+from model import TrafficSignRecognizer
+import argparse
 
 
 def accuracy(predictions, labels):
@@ -47,77 +44,20 @@ def load_dataset_and_labels(dataset_fname, train_or_test):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model_dir', default='train_model_dir',
+                        help='Path to model directory')
+    args = parser.parse_args()
+
     # Load dataset and label
     train_dataset, train_labels = load_dataset_and_labels(
         common.TRAIN_PKL_FILENAME, 'train')
     test_dataset, test_labels = load_dataset_and_labels(
         common.TEST_PKL_FILENAME, 'test')
-    n_train_dataset = train_dataset.shape[0]
-    n_test_dataset = test_dataset.shape[0]
 
-    with tf.Graph().as_default(), tf.Session() as sess:
-        # Inputs
-        x = tf.placeholder(
-            tf.float32,
-            shape=[
-                BATCH_SIZE, model.IMG_HEIGHT, model.IMG_WIDTH,
-                model.IMG_CHANNELS
-            ])
-        y = tf.placeholder(tf.float32, shape=[BATCH_SIZE, model.NUM_CLASSES])
-
-        # Inputs for test
-        tf_test_dataset = tf.constant(test_dataset, dtype=tf.float32)
-
-        # Instantiate convolutional neural network
-        model_params = model.params()
-        logits = model.cnn(x, model_params, keep_prob=0.5)
-
-        # Training computation
-        with tf.name_scope('loss'):
-            loss = tf.reduce_sum(
-                tf.nn.softmax_cross_entropy_with_logits(
-                    logits=logits, labels=y))
-            tf.summary.scalar('loss', loss)
-        optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(loss)
-        train_prediction = tf.nn.softmax(logits)
-        test_prediction = tf.nn.softmax(
-            model.cnn(tf_test_dataset, model_params, keep_prob=1.0))
-
-        # Merge all summaries
-        merged = tf.summary.merge_all()
-        train_fwriter = tf.summary.FileWriter(
-            os.path.join(os.getcwd(), 'train'))
-
-        # Add ops to save and restore all the variables
-        saver = tf.train.Saver()
-
-        #
-        # Training
-        #
-        sess.run(tf.global_variables_initializer())
-        for epoch in range(model.NUM_EPOCH):
-            for idx in range(0, n_train_dataset, BATCH_SIZE):
-                offset = (idx * BATCH_SIZE) % (n_train_dataset - BATCH_SIZE)
-                x_batch = train_dataset[offset:offset + BATCH_SIZE, :, :, :]
-                y_batch = train_labels[offset:offset + BATCH_SIZE, :]
-                feed_dict = {x: x_batch, y: y_batch}
-                _, l, predictions = sess.run(
-                    [optimizer, loss, train_prediction], feed_dict=feed_dict)
-                # Print batch results
-                print('[epoch %d] Mini-batch loss at %d: %f' % (epoch, idx, l))
-                print('[epoch %d] Minibatch accuracy: %.1f%%' %
-                      (epoch, accuracy(predictions, y_batch)))
-
-        print('Test accuracy: %.1f%%' % accuracy(test_prediction.eval(),
-                                                 test_labels))
-
-        # Save the trained model to disk.
-        save_dir = "models"
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-        save_path = os.path.join(save_dir, "deep_traffic_sign_model")
-        saved = saver.save(sess, save_path)
-        print("Model saved in file: %s" % saved)
+    # Create model and train
+    model = TrafficSignRecognizer(mode='train', model_dir=args.model_dir)
+    model.train(train_dataset, train_labels, learning_rate=1e-4)
 
 
 if __name__ == '__main__':
