@@ -110,11 +110,13 @@ def cnn(data, model_params, keep_prob):
 
 
 class TrafficSignRecognizer:
-    def __init__(self, keep_prob=1.0):
-        self.keep_prob = keep_prob
-        self.recognizer = self.build(keep_prob)
+    def __init__(self, mode):
+        assert mode in {'train', 'inference'}
+        self.mode = mode
+        self.recognizer_model = self.build(mode)
 
-    def build(self, keep_prob):
+    def build(self, mode):
+        assert mode in {'train', 'inference'}
         input_image = tf.keras.layers.Input(
             shape=[IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS])
         x = tf.keras.layers.Conv2D(
@@ -128,11 +130,17 @@ class TrafficSignRecognizer:
         x = tf.keras.layers.MaxPool2D()(x)
         x = tf.keras.layers.Flatten()(x)
         x = tf.keras.layers.Dense(4*4*128, activation='relu')(x)
-        x = tf.keras.layers.Dropout(keep_prob)(x)
+        if mode == 'train':
+            x = tf.keras.layers.Dropout(0.5)(x, training=True)
         outputs = tf.keras.layers.Dense(NUM_CLASSES, activation='softmax')(x)
         return tf.keras.Model(inputs=input_image, outputs=outputs)
 
 
 if __name__ == '__main__':
-    tsr = TrafficSignRecognizer(keep_prob=0.5)
-    tsr.recognizer.summary()
+    print('For training')
+    tsr = TrafficSignRecognizer(mode='train')
+    tsr.recognizer_model.summary()
+
+    print('For inference')
+    tsr_inference = TrafficSignRecognizer(mode='inference')
+    tsr_inference.recognizer_model.summary()
