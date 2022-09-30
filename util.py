@@ -25,7 +25,7 @@
 
 import numpy as np
 import selectivesearch
-import common
+import config
 import skimage.io
 
 
@@ -66,7 +66,7 @@ def get_object_proposals(img, scale=500, sigma=0.9, min_size=10):
 
 
 def load_target_image(img_fn):
-    if common.CNN_IN_CH == 1:
+    if config.CNN_IN_CH == 1:
         target_image = skimage.io.imread(img_fn, as_grey=True)
     else:
         target_image = skimage.io.imread(img_fn)

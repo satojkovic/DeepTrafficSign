@@ -32,7 +32,7 @@ import util
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import cv2
-import common
+import config
 
 
 def parse_cmdline():
@@ -93,7 +93,7 @@ def setup_graph():
 def cls2name(cls):
     SIGNNAMES_FILE = 'signnames.csv'
     signnames_ = np.loadtxt(
-        os.path.join(common.GTSRB_ROOT_DIR, SIGNNAMES_FILE),
+        os.path.join(config.GTSRB_ROOT_DIR, SIGNNAMES_FILE),
         delimiter=',',
         dtype=np.str)
     # skip first row

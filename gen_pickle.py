@@ -30,7 +30,7 @@ import re
 import joblib
 import numpy as np
 from model import NUM_CLASSES, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS
-import common
+import config
 
 
 def gt_csv_getline(gt_csvs):
@@ -187,12 +187,12 @@ def aug_by_flip(bboxes, classIds):
 
 
 def main():
-    train_gt_csvs = get_gt_csvs(common.TRAIN_ROOT_DIR)
-    test_gt_csvs = get_gt_csvs(common.TEST_ROOT_DIR)
+    train_gt_csvs = get_gt_csvs(config.TRAIN_ROOT_DIR)
+    test_gt_csvs = get_gt_csvs(config.TEST_ROOT_DIR)
 
     train_bboxes, train_classIds = parse_gt_csv(train_gt_csvs,
-                                                common.TRAIN_SIZE)
-    test_bboxes, test_classIds = parse_gt_csv(test_gt_csvs, common.TEST_SIZE)
+                                                config.TRAIN_SIZE)
+    test_bboxes, test_classIds = parse_gt_csv(test_gt_csvs, config.TEST_SIZE)
     print('train dataset {}, labels {}'.format(train_bboxes.shape,
                                                train_classIds.shape))
     print('test dataset {}, labels {}'.format(test_bboxes.shape,
@@ -219,10 +219,10 @@ def main():
         'train',
         train_bboxes,
         train_one_hot_classIds,
-        common.TRAIN_PKL_FILENAME,
+        config.TRAIN_PKL_FILENAME,
         shuffle=True)
     save_as_pickle('test', test_bboxes, test_one_hot_classIds,
-                   common.TEST_PKL_FILENAME)
+                   config.TEST_PKL_FILENAME)
 
 
 if __name__ == '__main__':

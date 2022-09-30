@@ -24,7 +24,7 @@
 
 import numpy as np
 import joblib
-import common
+import config
 from model import TrafficSignRecognizer
 import argparse
 
@@ -51,9 +51,9 @@ def main():
 
     # Load dataset and label
     train_dataset, train_labels = load_dataset_and_labels(
-        common.TRAIN_PKL_FILENAME, 'train')
+        config.TRAIN_PKL_FILENAME, 'train')
     test_dataset, test_labels = load_dataset_and_labels(
-        common.TEST_PKL_FILENAME, 'test')
+        config.TEST_PKL_FILENAME, 'test')
 
     # Create model and train
     model = TrafficSignRecognizer(mode='train', model_dir=args.model_dir)
