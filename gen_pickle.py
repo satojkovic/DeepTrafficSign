@@ -31,59 +31,7 @@ import joblib
 import numpy as np
 from model import NUM_CLASSES, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS
 import config
-
-
-def gt_csv_getline(gt_csvs):
-    for gt_csv in gt_csvs:
-        df = pd.io.parsers.read_csv(gt_csv, delimiter=';', skiprows=0)
-        n_lines = df.shape[0]
-        for i in range(n_lines):
-            img_file_path = os.path.join(
-                os.path.dirname(gt_csv), df.loc[i, 'Filename'])
-            # bbox include (Width;Height;Roi.X1;Roi.Y1;Roi.X2;Roi.Y2)
-            bbox = {
-                'Width': df.loc[i, 'Width'],
-                'Height': df.loc[i, 'Height'],
-                'Roi.X1': df.loc[i, 'Roi.X1'],
-                'Roi.Y1': df.loc[i, 'Roi.Y1'],
-                'Roi.X2': df.loc[i, 'Roi.X2'],
-                'Roi.Y2': df.loc[i, 'Roi.Y2']
-            }
-            classId = df.loc[i, 'ClassId']
-            yield (img_file_path, bbox, classId)
-
-
-def get_gt_csvs(root_dir):
-    gt_csvs = [
-        os.path.join(root, f)
-        for root, dirs, files in os.walk(root_dir) for f in files
-        if re.search(r'.csv', f)
-    ]
-    return gt_csvs
-
-
-def parse_gt_csv(gt_csvs, data_size):
-    bboxes = np.zeros(
-        (data_size, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS),
-        dtype=np.uint8)
-    classIds = np.zeros((data_size, 1), dtype=np.int32)
-    for i, (img_file_path, bbox,
-            classId) in enumerate(gt_csv_getline(gt_csvs)):
-        # Crop ground truth bounding box
-        img = cv2.imread(img_file_path)
-        gt_bbox = img[bbox['Roi.Y1']:bbox['Roi.Y2'], bbox['Roi.X1']:bbox[
-            'Roi.X2']]
-
-        # Resize to same size
-        gt_bbox = cv2.resize(gt_bbox, (IMG_WIDTH, IMG_HEIGHT))
-
-        # Expand dimension to stack image arrays
-        gt_bbox = np.expand_dims(gt_bbox, axis=0)
-
-        # Append bbox and classId
-        bboxes[i] = gt_bbox
-        classIds[i] = classId
-    return bboxes, classIds
+from util import *
 
 
 def save_as_pickle(train_or_test, bboxes, classIds, pkl_fname, shuffle=False):
