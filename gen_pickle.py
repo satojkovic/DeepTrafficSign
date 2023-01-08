@@ -30,7 +30,7 @@ import re
 import joblib
 import numpy as np
 from model import NUM_CLASSES, IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS
-import config
+from config import get_default_cfg
 from util import *
 
 
@@ -57,6 +57,7 @@ def preproc(bboxes, classIds):
     for i, bbox in enumerate(bboxes):
         img = cv2.cvtColor(bbox, cv2.COLOR_BGR2YCrCb)
         split_img = cv2.split(img)
+        split_img = list(split_img)
         split_img[0] = cv2.equalizeHist(split_img[0])
         eq_img = cv2.merge(split_img)
         eq_img = cv2.cvtColor(eq_img, cv2.COLOR_YCrCb2BGR)
@@ -135,6 +136,7 @@ def aug_by_flip(bboxes, classIds):
 
 
 def main():
+    config = get_default_cfg()
     train_gt_csvs = get_gt_csvs(config.TRAIN_ROOT_DIR)
     test_gt_csvs = get_gt_csvs(config.TEST_ROOT_DIR)
 
