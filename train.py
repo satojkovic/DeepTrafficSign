@@ -24,7 +24,7 @@
 
 import numpy as np
 import joblib
-import config
+from config import get_default_cfg
 from model import TrafficSignRecognizer
 import argparse
 
@@ -48,6 +48,8 @@ def main():
     parser.add_argument('--model_dir', default='train_model_dir',
                         help='Path to model directory')
     args = parser.parse_args()
+
+    config = get_default_cfg()
 
     # Load dataset and label
     train_dataset, train_labels = load_dataset_and_labels(
